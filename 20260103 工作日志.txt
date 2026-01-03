@@ -1,0 +1,39 @@
+20260103 工作日志
+
+1. 双边贸易数据
+源：UN Comtrade Database
+url: https://comtradeplus.un.org/BilateralData
+Raw: 由于免费注册用户限定查询下载最大12个年份的数据，因此原始数据分为2000~2011和2012~2020两部分
+Merged: 手动在Excel中简单合并两部分原始数据的行
+注意：
+1). 没有处理缺失值、非国家/地区的区域性经济体分类
+2). 使用Excel手动合并两个原始csv文件后，可能是编码问题，有个别国名含有非ASCII码（土耳其、波多黎各等）保存后变为乱码。这个问题在match过程中没有影响（仅使用三字母代码），但可能在最终的呈现中有影响显示的风险。
+面板数据集，关键字段：
+typeCode: 均为C（商品）
+freqCode: 均为A（年）
+period: 年份
+flowCode: X为出口，M为进口
+reporterISO: 出/进口 主体国三字代码
+partnerISO: 出/进口 对手国三字代码
+primaryValue: 原始发生额
+primaryValueDisc: 原始发生额，标准化
+
+2. 实际GDP数据
+源：World Bank Databank
+url: https://databank.worldbank.org/source/world-development-indicators
+二维表：
+行：国家/地区/非国家地区的区域性经济体分类；
+列：年份
+数值：以2015年美元计价，实际GDP
+Country Code: 国家/地区三字代码
+
+3. API 自动导入
+Python代码，对数据进行初步导入。
+exportdataframe: 双边出口数据，2000~2020 （480349×47）
+importdataframe: 双边进口数据，2000~2020 （567102×47）
+gdpdataframe: 总实际GDP数据，2000~2020 （266×22）
+
+注意：
+1. 安装数据源依赖包：comtradeapicall，wbgapi
+2. UN Comtrade需要注册为免费注册用户，然后subscribe free API，获取动态API，只需在代码中使用Primary key
+3. UN Comtrade API 官方范例： https://github.com/uncomtrade/comtradeapicall/blob/main/tests/example%20calling%20functions%20-%20notebook.ipynb
