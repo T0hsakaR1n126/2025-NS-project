@@ -1,0 +1,192 @@
+World Trade Web Statistics (Undirected, Unweighted)
+============================================================
+
+Year 2000:
+  Countries: 193
+  Edges: 13316
+  Density: 0.7187
+  Mean Degree: 137.99
+  Degree Range: [31, 192]
+  Total GDP: 4.79e+13
+  Mean Fitness: 0.005181
+
+Year 2001:
+  Countries: 193
+  Edges: 13501
+  Density: 0.7287
+  Mean Degree: 139.91
+  Degree Range: [35, 192]
+  Total GDP: 4.89e+13
+  Mean Fitness: 0.005181
+
+Year 2002:
+  Countries: 197
+  Edges: 13808
+  Density: 0.7152
+  Mean Degree: 140.18
+  Degree Range: [1, 195]
+  Total GDP: 5.00e+13
+  Mean Fitness: 0.005076
+
+Year 2003:
+  Countries: 196
+  Edges: 14099
+  Density: 0.7378
+  Mean Degree: 143.87
+  Degree Range: [33, 195]
+  Total GDP: 5.16e+13
+  Mean Fitness: 0.005102
+
+Year 2004:
+  Countries: 197
+  Edges: 14431
+  Density: 0.7475
+  Mean Degree: 146.51
+  Degree Range: [1, 195]
+  Total GDP: 5.39e+13
+  Mean Fitness: 0.005076
+
+Year 2005:
+  Countries: 196
+  Edges: 14491
+  Density: 0.7583
+  Mean Degree: 147.87
+  Degree Range: [38, 195]
+  Total GDP: 5.61e+13
+  Mean Fitness: 0.005102
+
+Year 2006:
+  Countries: 199
+  Edges: 15191
+  Density: 0.7711
+  Mean Degree: 152.67
+  Degree Range: [46, 198]
+  Total GDP: 5.86e+13
+  Mean Fitness: 0.005025
+
+Year 2007:
+  Countries: 200
+  Edges: 15459
+  Density: 0.7768
+  Mean Degree: 154.59
+  Degree Range: [58, 199]
+  Total GDP: 6.12e+13
+  Mean Fitness: 0.005000
+
+Year 2008:
+  Countries: 201
+  Edges: 15878
+  Density: 0.7900
+  Mean Degree: 157.99
+  Degree Range: [61, 200]
+  Total GDP: 6.25e+13
+  Mean Fitness: 0.004975
+
+Year 2009:
+  Countries: 201
+  Edges: 15912
+  Density: 0.7916
+  Mean Degree: 158.33
+  Degree Range: [56, 200]
+  Total GDP: 6.17e+13
+  Mean Fitness: 0.004975
+
+Year 2010:
+  Countries: 201
+  Edges: 16032
+  Density: 0.7976
+  Mean Degree: 159.52
+  Degree Range: [56, 200]
+  Total GDP: 6.44e+13
+  Mean Fitness: 0.004975
+
+Year 2011:
+  Countries: 203
+  Edges: 16203
+  Density: 0.7903
+  Mean Degree: 159.64
+  Degree Range: [8, 201]
+  Total GDP: 6.66e+13
+  Mean Fitness: 0.004926
+
+Year 2012:
+  Countries: 203
+  Edges: 16167
+  Density: 0.7885
+  Mean Degree: 159.28
+  Degree Range: [12, 201]
+  Total GDP: 6.85e+13
+  Mean Fitness: 0.004926
+
+Year 2013:
+  Countries: 204
+  Edges: 16440
+  Density: 0.7940
+  Mean Degree: 161.18
+  Degree Range: [41, 203]
+  Total GDP: 7.04e+13
+  Mean Fitness: 0.004902
+
+Year 2014:
+  Countries: 204
+  Edges: 16332
+  Density: 0.7888
+  Mean Degree: 160.12
+  Degree Range: [48, 203]
+  Total GDP: 7.26e+13
+  Mean Fitness: 0.004902
+
+Year 2015:
+  Countries: 205
+  Edges: 16686
+  Density: 0.7980
+  Mean Degree: 162.79
+  Degree Range: [48, 204]
+  Total GDP: 7.49e+13
+  Mean Fitness: 0.004878
+
+Year 2016:
+  Countries: 203
+  Edges: 16655
+  Density: 0.8123
+  Mean Degree: 164.09
+  Degree Range: [50, 202]
+  Total GDP: 7.70e+13
+  Mean Fitness: 0.004926
+
+Year 2017:
+  Countries: 203
+  Edges: 16829
+  Density: 0.8208
+  Mean Degree: 165.80
+  Degree Range: [48, 202]
+  Total GDP: 7.97e+13
+  Mean Fitness: 0.004926
+
+Year 2018:
+  Countries: 203
+  Edges: 16853
+  Density: 0.8220
+  Mean Degree: 166.04
+  Degree Range: [53, 202]
+  Total GDP: 8.23e+13
+  Mean Fitness: 0.004926
+
+Year 2019:
+  Countries: 202
+  Edges: 16544
+  Density: 0.8149
+  Mean Degree: 163.80
+  Degree Range: [59, 201]
+  Total GDP: 8.45e+13
+  Mean Fitness: 0.004950
+
+Year 2020:
+  Countries: 202
+  Edges: 16358
+  Density: 0.8058
+  Mean Degree: 161.96
+  Degree Range: [48, 201]
+  Total GDP: 8.20e+13
+  Mean Fitness: 0.004950
+

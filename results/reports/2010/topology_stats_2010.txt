@@ -1,0 +1,26 @@
+World Trade Web Analysis - Year 2010
+============================================================
+
+Network Properties:
+  Number of countries: 201
+  Number of edges: 16032
+  Density: 0.7976
+  Model R^2: 0.6092
+
+Degree Distribution:
+  Mean degree: 159.52
+  Std degree: 36.54
+  Min degree: 56
+  Max degree: 200
+  Skewness: -0.926
+  Kurtosis: -0.099
+
+Degree Correlations:
+  Assortativity: -0.937
+  Disassortative: True
+  K_nn power law exponent: 0.124
+
+Clustering:
+  Global clustering: 0.885
+  Hierarchy correlation: -0.884
+  Hierarchical: True
