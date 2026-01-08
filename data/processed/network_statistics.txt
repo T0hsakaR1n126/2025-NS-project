@@ -174,19 +174,19 @@ Year 2018:
 
 Year 2019:
   Countries: 202
-  Edges: 16544
-  Density: 0.8149
-  Mean Degree: 163.80
-  Degree Range: [59, 201]
+  Edges: 13869
+  Density: 0.6832
+  Mean Degree: 137.32
+  Degree Range: [33, 201]
   Total GDP: 8.45e+13
   Mean Fitness: 0.004950
 
 Year 2020:
   Countries: 202
-  Edges: 16358
-  Density: 0.8058
-  Mean Degree: 161.96
-  Degree Range: [48, 201]
+  Edges: 13611
+  Density: 0.6705
+  Mean Degree: 134.76
+  Degree Range: [35, 201]
   Total GDP: 8.20e+13
   Mean Fitness: 0.004950
 
