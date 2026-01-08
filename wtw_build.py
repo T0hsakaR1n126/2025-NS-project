@@ -1,3 +1,4 @@
+# network construction
 import os
 import pandas as pd
 import numpy as np
@@ -15,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class UndirectedWTWNetwork:
-    """Undirected unweighted world trade network"""
     year: int
     countries: List[str]
     adjacency_matrix: np.ndarray

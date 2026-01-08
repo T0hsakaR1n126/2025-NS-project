@@ -1,3 +1,4 @@
+# network analysis
 import numpy as np
 import pandas as pd
 from scipy import optimize, stats
@@ -17,7 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 try:
-    from nw_build import UndirectedWTWNetwork, OfflineDataProcessor
+    from wtw_build import UndirectedWTWNetwork, OfflineDataProcessor
     
     TradeDataProcessor = OfflineDataProcessor
     
@@ -84,7 +85,6 @@ class FitnessModelResult:
             'std_degree_actual': np.std(actual_degrees),
             'std_degree_predicted': np.std(predicted_degrees)
         }
-
 
 class TopologyAnalyzer:
     def __init__(self, network: UndirectedWTWNetwork):
@@ -249,7 +249,6 @@ class TopologyAnalyzer:
         
         return result
 
-
 class FitnessModelAnalyzer:
     def __init__(self, networks: Dict[int, UndirectedWTWNetwork], results_dir: str = './results'):
         self.networks = networks
@@ -262,6 +261,7 @@ class FitnessModelAnalyzer:
         
         self.model_results: Dict[int, FitnessModelResult] = {}
         self.topology_results: Dict[int, Dict] = {}
+        self.model_predictions: Dict[int, Dict] = {}
         
         print(f"Fitness model analyzer initialized with {len(networks)} years")
     
@@ -379,6 +379,83 @@ class FitnessModelAnalyzer:
         self.model_results[year] = result
         return result
     
+     
+    def _calculate_model_predictions(self, year: int, delta: float) -> Optional[Dict]:
+        if year not in self.networks:
+            return None
+        
+        network = self.networks[year]
+        countries = network.countries
+        fitness_vals = np.array([network.fitness_values.get(c, 0) for c in countries])
+        
+        valid_mask = fitness_vals > 0
+        if np.sum(valid_mask) < 10:
+            return None
+        
+        valid_countries = [c for c, m in zip(countries, valid_mask) if m]
+        x_vals = fitness_vals[valid_mask]
+        n = len(valid_countries)
+        
+        def f(xi, xj):
+            return (delta * xi * xj) / (1 + delta * xi * xj)
+        
+        k_pred = np.zeros(n)
+        for i in range(n):
+            xi = x_vals[i]
+            for j in range(n):
+                if i != j:
+                    k_pred[i] += f(xi, x_vals[j])
+        
+        knn_pred = np.zeros(n)
+        for i in range(n):
+            xi = x_vals[i]
+            ki = k_pred[i]
+            if ki > 0:
+                numerator = 0.0
+                for j in range(n):
+                    if i != j:
+                        f_ij = f(xi, x_vals[j])
+                        for k in range(n):
+                            if k != i and k != j:
+                                numerator += f_ij * f(x_vals[j], x_vals[k])
+                knn_pred[i] = numerator / ki
+        
+        c_pred = np.zeros(n)
+        for i in range(n):
+            xi = x_vals[i]
+            ki = k_pred[i]
+            if ki > 1:
+                numerator = 0.0
+                for j in range(n):
+                    if i != j:
+                        f_ij = f(xi, x_vals[j])
+                        for k in range(j+1, n):
+                            if k != i:
+                                f_ik = f(xi, x_vals[k])
+                                f_jk = f(x_vals[j], x_vals[k])
+                                numerator += f_ij * f_ik * f_jk
+                c_pred[i] = 2 * numerator / (ki * (ki - 1))
+        
+        unique_k = np.unique(np.round(k_pred).astype(int))
+        knn_by_k = {}
+        c_by_k = {}
+        
+        for k in unique_k:
+            mask = (np.round(k_pred).astype(int) == k)
+            if np.sum(mask) > 0:
+                knn_by_k[k] = np.mean(knn_pred[mask])
+                c_by_k[k] = np.mean(c_pred[mask])
+        
+        return {
+            'countries': valid_countries,
+            'fitness': x_vals,
+            'k_pred': k_pred,
+            'knn_pred': knn_pred,
+            'c_pred': c_pred,
+            'knn_by_k': knn_by_k,
+            'c_by_k': c_by_k
+        }
+
     def analyze_topology(self, year: int) -> Optional[Dict]:
         if year not in self.networks:
             return None
@@ -398,107 +475,154 @@ class FitnessModelAnalyzer:
         model = self.model_results[year]
         topology = self.topology_results[year]
         
+        model_pred = self._calculate_model_predictions(year, model.delta)
+        if model_pred is None:
+            logger.error(f"Could not calculate model predictions for {year}")
+            return None
+        
         fig, axes = plt.subplots(2, 2, figsize=(14, 12))
         fig.suptitle(f'World Trade Web Analysis - {year}', fontsize=16, fontweight='bold')
         
         ax1 = axes[0, 0]
-        self._plot_degree_vs_fitness(ax1, model, topology)
+        self._plot_degree_vs_fitness_with_model(ax1, model, topology, model_pred)
         
         ax2 = axes[0, 1]
-        self._plot_cumulative_degree_distribution(ax2, model, topology)
+        self._plot_cumulative_degree_distribution(ax2, model, topology, model_pred)
         
         ax3 = axes[1, 0]
-        self._plot_average_nearest_neighbor_degree(ax3, model, topology)
+        self._plot_average_nearest_neighbor_degree_with_model(ax3, model, topology, model_pred)
         
         ax4 = axes[1, 1]
-        self._plot_clustering_coefficient(ax4, model, topology)
+        self._plot_clustering_coefficient_with_model(ax4, model, topology, model_pred)
         
         plt.tight_layout()
         
         if save:
-            fig_path = os.path.join(self.results_dir, 'figures', f'wtw_analysis_{year}.png')
+            fig_path = os.path.join(self.results_dir, 'figures', f'wtw_analysis_{year}_with_model.png')
             plt.savefig(fig_path, dpi=300, bbox_inches='tight')
         
         return fig
-    
-    def _plot_degree_vs_fitness(self, ax, model, topology):
+        
+    def _plot_degree_vs_fitness_with_model(self, ax, model, topology, model_pred):
         countries = model.countries
         fitness_vals = [model.fitness_values[c] for c in countries]
         k_actual = [model.actual_degrees[c] for c in countries]
-        k_pred = [model.predicted_degrees[c] for c in countries]
         
-        mask = np.array(fitness_vals) > 0
-        if np.sum(mask) > 10:
-            log_fitness = np.log10(np.array(fitness_vals)[mask])
-            bins = np.linspace(log_fitness.min(), log_fitness.max(), 15)
-            bin_centers = []
-            bin_k_actual = []
-            bin_k_pred = []
-            
-            for i in range(len(bins)-1):
-                idx_mask = (log_fitness >= bins[i]) & (log_fitness < bins[i+1])
-                if np.sum(idx_mask) > 0:
-                    bin_center = 10 ** ((bins[i] + bins[i+1]) / 2)
-                    actual_vals = [k_actual[j] for j, m in enumerate(mask) if m and idx_mask[j-np.sum(~mask)]]
-                    pred_vals = [k_pred[j] for j, m in enumerate(mask) if m and idx_mask[j-np.sum(~mask)]]
-                    
-                    if actual_vals and pred_vals:
-                        bin_centers.append(bin_center)
-                        bin_k_actual.append(np.mean(actual_vals))
-                        bin_k_pred.append(np.mean(pred_vals))
-            
-            ax.scatter(fitness_vals, k_actual, alpha=0.6, s=20, color='blue', label='Actual')
-            
-            if bin_centers:
-                ax.plot(bin_centers, bin_k_actual, 'o-', color='red', linewidth=2, 
-                       markersize=8, label='Actual (binned)')
-                ax.plot(bin_centers, bin_k_pred, 's--', color='green', linewidth=2, 
-                       markersize=6, label='Model prediction')
+        ax.scatter(fitness_vals, k_actual, alpha=0.3, s=15, color='blue', label='Actual data')
+        
+        sorted_idx = np.argsort(model_pred['fitness'])
+        x_sorted = model_pred['fitness'][sorted_idx]
+        k_pred_sorted = model_pred['k_pred'][sorted_idx]
+        
+        ax.plot(x_sorted, k_pred_sorted, 'r-', linewidth=2.5, label='Model prediction', zorder=10)
+        
+        N = model.num_nodes
+        delta = model.delta
+        
+        if x_sorted[-1] > 0.01:
+            ax.axhline(y=N-1, color='gray', linestyle='--', alpha=0.7, linewidth=1.5, 
+                      label=r'$\tilde{k}=N-1$')
+        
+        small_x = np.linspace(min(x_sorted), 0.01, 50)
+        small_k = delta * small_x
+        ax.plot(small_x, small_k, 'g--', alpha=0.7, linewidth=1.5, 
+               label=r'$\tilde{k}\approx\delta x$')
         
         ax.set_xscale('log')
         ax.set_xlabel('Fitness x (normalized GDP)', fontsize=12)
         ax.set_ylabel('Degree k', fontsize=12)
         ax.set_title(f'Degree vs Fitness (R² = {model.r2:.3f})', fontsize=13)
-        ax.legend(fontsize=10)
+        ax.legend(fontsize=9, loc='upper left')
         ax.grid(True, alpha=0.3)
     
-    def _plot_cumulative_degree_distribution(self, ax, model, topology):
+    def _plot_cumulative_degree_distribution(self, ax, model, topology, model_pred=None):
         if 'degree_distribution' in topology and 'cumulative_distribution' in topology['degree_distribution']:
             cum_data = topology['degree_distribution']['cumulative_distribution']
             k_vals = cum_data['k_values']
             P_gt_k = cum_data['P_gt_k']
             
-            mask = P_gt_k > 0
+            mask = (k_vals >= 1) & (P_gt_k > 0)
             if np.sum(mask) > 5:
-                ax.plot(k_vals[mask], P_gt_k[mask], 'o-', linewidth=2, markersize=4, 
-                       label='Empirical distribution')
+                ax.scatter(k_vals[mask], P_gt_k[mask], s=30, alpha=0.7, 
+                        color='blue', edgecolor='darkblue', linewidth=0.5,
+                        label='Empirical data (circles)', zorder=5)
                 
-                if 'power_law_fit' in topology['degree_distribution']:
-                    fit_data = topology['degree_distribution']['power_law_fit']
-                    exponent = fit_data['exponent']
+                if model_pred is not None and 'k_pred' in model_pred:
+                    try:
+                        k_pred = model_pred['k_pred']
+                        
+                        k_pred_discrete = np.round(k_pred).astype(int)
+                        k_pred_discrete = k_pred_discrete[k_pred_discrete >= 1]
+                        
+                        if len(k_pred_discrete) > 5:
+                            max_k = int(np.max(k_pred_discrete))
+                            pred_counts = np.bincount(k_pred_discrete, minlength=max_k+2)
+                            pred_cum = 1 - np.cumsum(pred_counts) / len(k_pred_discrete)
+                            
+                            pred_k_vals = np.arange(len(pred_cum))
+                            pred_mask = (pred_k_vals >= 1) & (pred_cum > 0)
+                            
+                            if np.sum(pred_mask) > 5:
+                                ax.plot(pred_k_vals[pred_mask], pred_cum[pred_mask], 
+                                    '-', color='red', linewidth=2.5, alpha=0.9,
+                                    label='Model prediction (solid line)', zorder=10)
+                    except Exception as e:
+                        logger.debug(f"Model prediction line error: {e}")
+                
+                try:
+                    k_min = np.percentile(k_vals[mask], 20)
+                    k_max = np.percentile(k_vals[mask], 80)
                     
-                    fit_k = k_vals[(k_vals > 0) & (k_vals < np.percentile(k_vals[mask], 95))]
-                    if len(fit_k) > 0:
-                        power_law = np.exp(fit_data['intercept']) * fit_k ** (-exponent)
-                        ax.plot(fit_k, power_law, '--', color='red', linewidth=2,
-                               label=f'Power law (γ={exponent:.2f})')
+                    if k_min > 0 and k_max > k_min:
+                        ref_k = np.logspace(np.log10(k_min), np.log10(k_max), 50)
+                        
+                        log_k = np.log(k_vals[mask])
+                        log_P = np.log(P_gt_k[mask])
+                        
+                        geom_mean_k = np.exp(np.mean(log_k))
+                        geom_mean_P = np.exp(np.mean(log_P))
+                        
+                        if geom_mean_k > 0 and geom_mean_P > 0:
+                            C_16 = geom_mean_P * (geom_mean_k ** 1.6)
+                            ref_line_16 = C_16 / (ref_k ** 1.6)
+                            
+                            ax.plot(ref_k, ref_line_16, '--', color='gray', linewidth=2, alpha=0.8,
+                                label='Power law with slope -1.6 (dashed line)', zorder=3)
+                            
+                            ax.text(0.05, 0.20, 'P(>k) ∝ k⁻¹·⁶', transform=ax.transAxes,
+                                fontsize=10, color='gray', alpha=0.8,
+                                bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
+                except Exception as e:
+                    logger.debug(f"Reference line error: {e}")
         
         ax.set_xscale('log')
         ax.set_yscale('log')
         ax.set_xlabel('Degree k', fontsize=12)
         ax.set_ylabel('P(>k)', fontsize=12)
         ax.set_title('Cumulative Degree Distribution', fontsize=13)
-        ax.legend(fontsize=10)
+        ax.legend(fontsize=9, loc='upper right')
         ax.grid(True, alpha=0.3)
     
-    def _plot_average_nearest_neighbor_degree(self, ax, model, topology):
+    def _plot_average_nearest_neighbor_degree_with_model(self, ax, model, topology, model_pred):
         if 'degree_correlations' in topology and 'knn_by_degree' in topology['degree_correlations']:
             knn_data = topology['degree_correlations']['knn_by_degree']
             if knn_data:
-                k_vals = np.array(list(knn_data.keys()))
-                knn_vals = np.array(list(knn_data.values()))
+                k_vals_actual = np.array(list(knn_data.keys()))
+                knn_vals_actual = np.array(list(knn_data.values()))
                 
-                ax.scatter(k_vals, knn_vals, alpha=0.7, s=50, color='blue')
+                ax.scatter(k_vals_actual, knn_vals_actual, alpha=0.6, s=40, 
+                          color='blue', label='Actual data')
+                
+                if model_pred['knn_by_k']:
+                    k_vals_model = np.array(list(model_pred['knn_by_k'].keys()))
+                    knn_vals_model = np.array(list(model_pred['knn_by_k'].values()))
+                    
+                    sorted_idx = np.argsort(k_vals_model)
+                    k_vals_model_sorted = k_vals_model[sorted_idx]
+                    knn_vals_model_sorted = knn_vals_model[sorted_idx]
+                    
+                    ax.plot(k_vals_model_sorted, knn_vals_model_sorted, 'r-', 
+                           linewidth=2.5, label='Model prediction', zorder=10)
                 
                 assort = topology['degree_correlations'].get('assortativity', 0)
                 disassort = topology['degree_correlations'].get('disassortative', False)
@@ -506,33 +630,35 @@ class FitnessModelAnalyzer:
                 ax.text(0.05, 0.95, assort_text, transform=ax.transAxes,
                        fontsize=11, verticalalignment='top',
                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-                
-                if 'power_law_exponent' in topology['degree_correlations']:
-                    exponent = topology['degree_correlations']['power_law_exponent']
-                    fit_k = k_vals[(k_vals > 0) & (knn_vals > 0)]
-                    if len(fit_k) > 2:
-                        x_fit = np.linspace(fit_k.min(), fit_k.max(), 50)
-                        y_fit = np.mean(knn_vals) * (x_fit / np.mean(fit_k)) ** (-exponent)
-                        ax.plot(x_fit, y_fit, 'r--', linewidth=2,
-                               label=f'K_nn(k) ∝ k^{{{-exponent:.2f}}}')
         
         ax.set_xscale('log')
         ax.set_yscale('log')
         ax.set_xlabel('Degree k', fontsize=12)
         ax.set_ylabel(r'$K^{nn}(k)$', fontsize=12)
         ax.set_title('Average Nearest Neighbor Degree', fontsize=13)
-        if ax.get_legend_handles_labels()[0]:
-            ax.legend(fontsize=10)
+        ax.legend(fontsize=10)
         ax.grid(True, alpha=0.3)
     
-    def _plot_clustering_coefficient(self, ax, model, topology):
+    def _plot_clustering_coefficient_with_model(self, ax, model, topology, model_pred):
         if 'clustering' in topology and 'by_degree' in topology['clustering']:
             clust_data = topology['clustering']['by_degree']
             if clust_data:
-                k_vals = np.array(list(clust_data.keys()))
-                c_vals = np.array(list(clust_data.values()))
+                k_vals_actual = np.array(list(clust_data.keys()))
+                c_vals_actual = np.array(list(clust_data.values()))
                 
-                ax.scatter(k_vals, c_vals, alpha=0.7, s=50, color='purple')
+                ax.scatter(k_vals_actual, c_vals_actual, alpha=0.6, s=40,
+                          color='purple', label='Actual data')
+                
+                if model_pred['c_by_k']:
+                    k_vals_model = np.array(list(model_pred['c_by_k'].keys()))
+                    c_vals_model = np.array(list(model_pred['c_by_k'].values()))
+                    
+                    sorted_idx = np.argsort(k_vals_model)
+                    k_vals_model_sorted = k_vals_model[sorted_idx]
+                    c_vals_model_sorted = c_vals_model[sorted_idx]
+                    
+                    ax.plot(k_vals_model_sorted, c_vals_model_sorted, 'r-',
+                           linewidth=2.5, label='Model prediction', zorder=10)
                 
                 is_hierarchical = topology['clustering'].get('hierarchical', False)
                 hier_text = 'Hierarchical' if is_hierarchical else 'Non-hierarchical'
@@ -545,6 +671,7 @@ class FitnessModelAnalyzer:
         ax.set_xlabel('Degree k', fontsize=12)
         ax.set_ylabel('C(k)', fontsize=12)
         ax.set_title('Clustering Coefficient', fontsize=13)
+        ax.legend(fontsize=10)
         ax.grid(True, alpha=0.3)
     
     def plot_temporal_evolution(self, save: bool = True) -> Optional[plt.Figure]:
@@ -800,7 +927,6 @@ def main_analysis():
         print(f"\nError: {e}")
         import traceback
         traceback.print_exc()
-
 
 if __name__ == "__main__":
     main_analysis()

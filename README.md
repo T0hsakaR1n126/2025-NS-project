@@ -11,7 +11,7 @@
   run ```pip install pandas numpy matplotlib scipy networkx tqdm comtradeapicall wbgapi``` to install related package.
   (2). Compile And Run the Code
     (a) run ```python data_import.py```.
-    (b) run ```python nw_build.py```.
-    (c) run ```python nw_analysis.py```.
+    (b) run ```python wtw_build.py```. 
+    (c) run ```python wtw_analysis.py```.
 
 Note: If you use the API of UN Comtrade Database too often, the api will denied your access about 19 hours. After 19 hours, you can use it again.
