@@ -378,7 +378,6 @@ class FitnessModelAnalyzer:
         
         self.model_results[year] = result
         return result
-    
      
     def _calculate_model_predictions(self, year: int, delta: float) -> Optional[Dict]:
         if year not in self.networks:
@@ -534,6 +533,11 @@ class FitnessModelAnalyzer:
         ax.set_title(f'Degree vs Fitness (R² = {model.r2:.3f})', fontsize=13)
         ax.legend(fontsize=9, loc='upper left')
         ax.grid(True, alpha=0.3)
+
+        ax.set_xlim(left=1e-4, right=1.0)  
+        ax.set_ylim(bottom=0, top=1000)    
+        ax.set_xticks([1e-8, 1e-6, 1e-4, 1e-2, 1e0])
+        ax.set_xticklabels(['$10^{-8}$', '$10^{-6}$', '$10^{-4}$', '$10^{-2}$', '$10^{0}$'])
     
     def _plot_cumulative_degree_distribution(self, ax, model, topology, model_pred=None):
         if 'degree_distribution' in topology and 'cumulative_distribution' in topology['degree_distribution']:
